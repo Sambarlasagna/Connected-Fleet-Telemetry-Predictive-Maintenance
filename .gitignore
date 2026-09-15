@@ -1,1 +1,30 @@
-/data
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.env
+venv/
+.venv/
+
+# ML model (large binary)
+ml/model/rf_model.pkl
+
+# Node
+node_modules/
+frontend/dist/
+
+# Database seed data (auto-generated)
+database/seed/
+
+# Data (large files)
+data/raw/PdM_telemetry.csv
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+*.log

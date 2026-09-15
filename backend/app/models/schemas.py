@@ -1,0 +1,48 @@
+from pydantic import BaseModel
+from typing import Optional, Dict, List
+
+
+class MachineBase(BaseModel):
+    machine_id: int
+    machine_name: str
+    model: str
+    age: int
+    risk_level: str
+    failure_probability: float
+
+
+class MachineDetail(MachineBase):
+    pass
+
+
+class TelemetryPoint(BaseModel):
+    timestamp: str
+    volt: float
+    rotate: float
+    pressure: float
+    vibration: float
+
+
+class PredictionResponse(BaseModel):
+    machine_id: int
+    failure_probability: float
+    risk_level: str
+    recommended_action: str
+    explanation: Dict[str, float]
+
+
+class AlertResponse(BaseModel):
+    machine_id: int
+    machine_name: str
+    risk_level: str
+    failure_probability: float
+    message: str
+
+
+class FleetOverview(BaseModel):
+    total: int
+    healthy_count: int
+    at_risk_count: int
+    critical_count: int
+    avg_risk: float
+    recent_alerts: List[AlertResponse]
