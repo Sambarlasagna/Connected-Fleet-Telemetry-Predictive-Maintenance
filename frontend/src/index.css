@@ -506,3 +506,38 @@ a { color: inherit; text-decoration: none; }
   .landing-stats { gap: 24px; flex-wrap: wrap; }
   .navbar { padding: 0 16px; }
 }
+
+/* __ Simulation Panel __ */
+.sim-panel { border: 1px solid rgba(99,102,241,0.25); background: rgba(99,102,241,0.05); }
+.sim-panel-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.sim-panel-title { font-size: 1rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 10px; }
+.sim-stats { font-size: 0.8rem; color: var(--text-secondary); }
+.sim-controls { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+.sim-control-group { display: flex; flex-direction: column; gap: 6px; }
+.sim-label { font-size: 0.72rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.sim-select { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-primary); padding: 8px 12px; font-size: 0.85rem; cursor: pointer; outline: none; min-width: 180px; }
+.sim-select:focus { border-color: var(--accent); }
+.speed-btns { display: flex; gap: 4px; }
+.speed-btn { padding: 7px 16px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: transparent; color: var(--text-secondary); font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+.speed-btn:hover { border-color: var(--accent); color: var(--accent); }
+.speed-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.sim-actions, .sim-running-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn-sim { padding: 9px 20px; border-radius: var(--radius-sm); border: none; font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: all 0.2s; letter-spacing: 0.02em; }
+.btn-sim:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-start { background: var(--accent); color: #fff; }
+.btn-start:hover:not(:disabled) { background: #4f46e5; transform: translateY(-1px); }
+.btn-demo { background: linear-gradient(135deg,#7c3aed,#ec4899); color: #fff; }
+.btn-demo:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+.btn-stop { background: var(--critical-bg); color: var(--critical); border: 1px solid var(--critical-border); }
+.btn-stop:hover:not(:disabled) { background: var(--critical); color: #fff; }
+.btn-reset { background: transparent; color: var(--text-secondary); border: 1px solid var(--border); }
+.btn-reset:hover:not(:disabled) { border-color: var(--border-hover); color: var(--text-primary); }
+/* __ Live badge __ */
+.live-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 0.68rem; font-weight: 800; color: var(--critical); letter-spacing: 0.1em; text-transform: uppercase; background: var(--critical-bg); border: 1px solid var(--critical-border); border-radius: 20px; padding: 2px 8px; }
+.live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--critical); animation: pulse-live 1.2s ease-in-out infinite; }
+@keyframes pulse-live { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.4; transform:scale(0.7); } }
+/* __ Sim-active card glow __ */
+.machine-card.sim-active.critical { animation: card-pulse-critical 2s ease-in-out infinite; }
+.machine-card.sim-active.at_risk { animation: card-pulse-risk 2.5s ease-in-out infinite; }
+@keyframes card-pulse-critical { 0%,100% { box-shadow:0 0 0 0 rgba(239,68,68,0); } 50% { box-shadow:0 0 16px 4px rgba(239,68,68,0.25); } }
+@keyframes card-pulse-risk { 0%,100% { box-shadow:0 0 0 0 rgba(245,158,11,0); } 50% { box-shadow:0 0 12px 3px rgba(245,158,11,0.2); } }

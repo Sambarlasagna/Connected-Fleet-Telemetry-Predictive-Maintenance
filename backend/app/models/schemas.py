@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Any
 
 
 class MachineBase(BaseModel):
@@ -46,3 +46,27 @@ class FleetOverview(BaseModel):
     critical_count: int
     avg_risk: float
     recent_alerts: List[AlertResponse]
+
+
+# ── Simulation schemas ─────────────────────────────────────────────────────────
+
+class SimulationStartRequest(BaseModel):
+    scenario: str = "bearing_wear"   # default scenario for all active machines
+    speed: float = 1.0               # 1.0, 2.0, or 5.0
+    demo: bool = False               # if True, use the scripted interview demo
+
+
+class SimulationStatusResponse(BaseModel):
+    is_running: bool
+    is_demo: bool
+    scenario: str
+    speed: float
+    tick_count: int
+    active_machines: List[int]
+    started_at: Optional[str]
+    vehicle_degradations: Dict[str, float]
+
+
+class SimulationResetResponse(BaseModel):
+    success: bool
+    message: str

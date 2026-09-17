@@ -10,7 +10,7 @@ import json
 import psycopg2
 from psycopg2.extras import Json
 
-DB_URL = os.getenv("DATABASE_URL", "postgresql://fleetguard:fleetguard@localhost:5433/fleetguard")
+DB_URL = os.getenv("DATABASE_URL", "postgresql://fleetguard:fleetguard@localhost:5432/fleetguard")
 SEED_DIR = os.path.join(os.path.dirname(__file__), "seed")
 
 

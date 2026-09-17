@@ -1,11 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes import fleet, vehicles, predictions
+from app.routes import fleet, vehicles, predictions, simulation
 
 app = FastAPI(
     title="FleetGuard API",
     description="Real-time predictive maintenance platform for connected vehicle fleets.",
-    version="1.0.0",
+    version="2.0.0",
 )
 
 app.add_middleware(
@@ -19,8 +19,9 @@ app.add_middleware(
 app.include_router(fleet.router,       prefix="/api", tags=["Fleet"])
 app.include_router(vehicles.router,    prefix="/api", tags=["Vehicles"])
 app.include_router(predictions.router, prefix="/api", tags=["Predictions"])
+app.include_router(simulation.router,  prefix="/api", tags=["Simulation"])
 
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "service": "FleetGuard API"}
+    return {"status": "ok", "service": "FleetGuard API", "version": "2.0.0"}

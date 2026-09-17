@@ -4,7 +4,7 @@ import os
 
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql://fleetguard:fleetguard@localhost:5433/fleetguard"
+    "postgresql://fleetguard:fleetguard@localhost:5432/fleetguard"
 )
 
 engine = create_engine(DATABASE_URL)
