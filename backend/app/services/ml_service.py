@@ -1,6 +1,10 @@
 """
 ML service — loads the trained sklearn Random Forest and runs inference + SHAP.
 Model is loaded once at startup and cached for the lifetime of the server.
+
+Two inference modes:
+  predict_fast(features) — just sklearn predict_proba, <5ms, used by the simulator
+  predict(features)      — full inference with SHAP explanation, ~2s, used by the API
 """
 
 import os
@@ -47,31 +51,46 @@ def get_feature_cols() -> List[str]:
     return _feature_cols
 
 
+def _build_vector(features: Dict[str, float]) -> np.ndarray:
+    return np.array([[features.get(f, 0.0) for f in _feature_cols]])
+
+
+def _classify(prob: float) -> Tuple[str, str]:
+    """Map probability → (risk_level, recommended_action)."""
+    if prob >= 0.7:
+        return "critical", "Schedule immediate maintenance inspection."
+    elif prob >= 0.4:
+        return "at_risk", "Monitor closely — maintenance recommended within 48 hours."
+    else:
+        return "healthy", "No action required. Continue normal operation."
+
+
+def predict_fast(features: Dict[str, float]) -> Tuple[float, str, str]:
+    """
+    Fast inference — no SHAP. Used by the background simulator loop.
+    ~5ms per call (vs ~2000ms with SHAP).
+
+    Returns: (failure_probability, risk_level, recommended_action)
+    """
+    _load_model()
+    x = _build_vector(features)
+    prob = float(_model.predict_proba(x)[0][1])
+    risk_level, action = _classify(prob)
+    return prob, risk_level, action
+
+
 def predict(features: Dict[str, float]) -> Tuple[float, str, str, Dict[str, float]]:
     """
-    Run prediction for a single machine.
+    Full inference with SHAP explanation. Used by the prediction API endpoint.
+    ~2s per call due to SHAP tree computation.
 
-    Returns:
-        (failure_probability, risk_level, recommended_action, explanation)
+    Returns: (failure_probability, risk_level, recommended_action, explanation)
     """
     _load_model()
 
-    # Build feature vector in correct order
-    x = np.array([[features.get(f, 0.0) for f in _feature_cols]])
-
+    x = _build_vector(features)
     prob = float(_model.predict_proba(x)[0][1])
-
-    risk_level = (
-        "critical" if prob >= 0.7
-        else "at_risk" if prob >= 0.4
-        else "healthy"
-    )
-
-    recommended_action = {
-        "critical": "Schedule immediate maintenance inspection.",
-        "at_risk":  "Monitor closely — maintenance recommended within 48 hours.",
-        "healthy":  "No action required. Continue normal operation.",
-    }[risk_level]
+    risk_level, action = _classify(prob)
 
     # SHAP explanation
     explanation: Dict[str, float] = {}
@@ -80,25 +99,39 @@ def predict(features: Dict[str, float]) -> Tuple[float, str, str, Dict[str, floa
             scaler = _model.named_steps["scaler"]
             x_scaled = scaler.transform(x)
             shap_vals = _explainer.shap_values(x_scaled)
-            # Take class-1 SHAP values
-            sv = shap_vals[1][0] if isinstance(shap_vals, list) else shap_vals[0]
+
+            # Robustly handle all shap_values output formats:
+            #   list of 2 arrays  -> [class0_arr, class1_arr]  (old shap / binary RF)
+            #   list of 1 array   -> [combined_arr]            (newer shap binary)
+            #   3-D ndarray       -> (n_classes, n_samples, n_feats)
+            #   2-D ndarray       -> (n_samples, n_feats)
+            if isinstance(shap_vals, list):
+                if len(shap_vals) >= 2:
+                    sv = np.asarray(shap_vals[1]).flatten()
+                else:
+                    sv = np.asarray(shap_vals[0]).flatten()
+            elif isinstance(shap_vals, np.ndarray) and shap_vals.ndim == 3:
+                sv = shap_vals[-1, 0, :]
+            else:
+                sv = np.asarray(shap_vals).flatten()
+
             full_explanation = {
                 feat: round(float(val), 4)
                 for feat, val in zip(_feature_cols, sv)
             }
-            # Return top 5 by absolute value
+            # Return top 8 by absolute SHAP value
             explanation = dict(
-                sorted(full_explanation.items(), key=lambda kv: abs(kv[1]), reverse=True)[:5]
+                sorted(full_explanation.items(), key=lambda kv: abs(kv[1]), reverse=True)[:8]
             )
         except Exception as e:
             print(f"SHAP inference error: {e}")
 
     if not explanation:
-        # Fallback: use feature importances
+        # Fallback: use feature importances (always available, no SHAP needed)
         importances = _model.named_steps["rf"].feature_importances_
         imp_dict = {f: round(float(v), 4) for f, v in zip(_feature_cols, importances)}
         explanation = dict(
-            sorted(imp_dict.items(), key=lambda kv: abs(kv[1]), reverse=True)[:5]
+            sorted(imp_dict.items(), key=lambda kv: abs(kv[1]), reverse=True)[:8]
         )
 
-    return prob, risk_level, recommended_action, explanation
+    return prob, risk_level, action, explanation

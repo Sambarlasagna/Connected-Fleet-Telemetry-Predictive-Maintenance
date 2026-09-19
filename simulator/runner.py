@@ -23,7 +23,7 @@ from sqlalchemy.orm import Session
 
 from simulator.vehicle import VehicleState
 from simulator.scenarios import SCENARIOS, DEMO_SCRIPT
-from app.services.ml_service import predict
+from app.services.ml_service import predict_fast
 
 
 # ── Singleton session ──────────────────────────────────────────────────────────
@@ -79,7 +79,7 @@ class SimulationRunner:
                     model_idx=meta.get("model_idx", 0),
                     age=meta.get("age", 5),
                     scenario=s,
-                    degradation_rate=0.004 / speed,
+                    degradation_rate=0.008 * speed,  # faster speed = faster degradation
                 )
 
             self._thread = threading.Thread(
@@ -183,9 +183,9 @@ class SimulationRunner:
                             VALUES (:machine_id, :timestamp, :volt, :rotate, :pressure, :vibration)
                         """), row)
 
-                        # Run ML inference
+                        # Run fast ML inference (no SHAP — keeps simulation real-time)
                         feats = vehicle.feature_vector()
-                        prob, risk_level, action, explanation = predict(feats)
+                        prob, risk_level, action = predict_fast(feats)
 
                         # Update machine record
                         db.execute(text("""
@@ -196,7 +196,7 @@ class SimulationRunner:
                             WHERE machine_id = :mid
                         """), {"prob": round(prob, 4), "risk": risk_level, "mid": mid})
 
-                        # Insert prediction row
+                        # Insert prediction row (no SHAP in sim — fast path)
                         db.execute(text("""
                             INSERT INTO predictions (machine_id, failure_probability, risk_level, recommended_action, explanation)
                             VALUES (:mid, :prob, :risk, :action, :explanation)
@@ -205,7 +205,7 @@ class SimulationRunner:
                             "prob":        round(prob, 4),
                             "risk":        risk_level,
                             "action":      action,
-                            "explanation": json.dumps(explanation),
+                            "explanation": json.dumps({}),
                         })
 
                         # Auto-generate alert when machine transitions to critical

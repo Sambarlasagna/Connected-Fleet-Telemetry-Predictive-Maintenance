@@ -188,6 +188,7 @@ export default function FleetDashboard() {
   const [overview, setOverview]     = useState(null);
   const [machines, setMachines]     = useState([]);
   const [filter, setFilter]         = useState('all');
+  const [sort, setSort]             = useState('risk_desc');
   const [loading, setLoading]       = useState(true);
   const [error, setError]           = useState(null);
   const [simStatus, setSimStatus]   = useState(null);
@@ -290,7 +291,21 @@ export default function FleetDashboard() {
     </div>
   );
 
-  const filtered = filter === 'all' ? machines : machines.filter(m => m.risk_level === filter);
+  const SORT_OPTIONS = [
+    { value: 'risk_desc', label: '🔴 Highest Risk First' },
+    { value: 'risk_asc',  label: '🟢 Lowest Risk First' },
+    { value: 'id_asc',   label: '🔢 Machine ID (1→100)' },
+  ];
+
+  const sortFn = {
+    risk_desc: (a, b) => b.failure_probability - a.failure_probability,
+    risk_asc:  (a, b) => a.failure_probability - b.failure_probability,
+    id_asc:    (a, b) => a.machine_id - b.machine_id,
+  };
+
+  const filtered = (
+    filter === 'all' ? machines : machines.filter(m => m.risk_level === filter)
+  ).slice().sort(sortFn[sort]);
   const avgPct   = Math.round((overview?.avg_risk ?? 0) * 100);
   const isSimRunning = simStatus?.is_running;
 
@@ -343,16 +358,27 @@ export default function FleetDashboard() {
           <span className="section-count">{filtered.length} shown</span>
         </div>
 
-        <div className="filter-bar">
-          {['all', 'critical', 'at_risk', 'healthy'].map(f => (
-            <button
-              key={f}
-              className={`filter-btn ${filter === f ? 'active' : ''}`}
-              onClick={() => setFilter(f)}
-            >
-              {f === 'all' ? 'All' : RISK_LABEL[f]}
-            </button>
-          ))}
+        {/* Filter + Sort bar */}
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center', marginBottom: 16 }}>
+          <div className="filter-bar" style={{ margin: 0, flex: 1 }}>
+            {['all', 'critical', 'at_risk', 'healthy'].map(f => (
+              <button
+                key={f}
+                className={`filter-btn ${filter === f ? 'active' : ''}`}
+                onClick={() => setFilter(f)}
+              >
+                {f === 'all' ? 'All' : RISK_LABEL[f]}
+              </button>
+            ))}
+          </div>
+          <select
+            value={sort}
+            onChange={e => setSort(e.target.value)}
+          >
+            {SORT_OPTIONS.map(o => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
         </div>
 
         <div className="machines-grid">

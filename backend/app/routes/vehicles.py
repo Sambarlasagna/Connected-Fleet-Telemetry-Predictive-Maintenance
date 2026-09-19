@@ -55,17 +55,18 @@ def get_machine(machine_id: int, db: Session = Depends(get_db)):
 
 @router.get("/vehicles/{machine_id}/telemetry", response_model=List[TelemetryPoint])
 def get_telemetry(machine_id: int, db: Session = Depends(get_db)):
-    """Recent telemetry readings for a machine."""
+    """Recent telemetry readings for a machine (latest 50, chronological order)."""
     rows = db.execute(text("""
         SELECT timestamp, volt, rotate, pressure, vibration
-        FROM telemetry
-        WHERE machine_id = :mid
+        FROM (
+            SELECT timestamp, volt, rotate, pressure, vibration
+            FROM telemetry
+            WHERE machine_id = :mid
+            ORDER BY timestamp DESC
+            LIMIT 50
+        ) sub
         ORDER BY timestamp ASC
-        LIMIT 50
     """), {"mid": machine_id}).fetchall()
-
-    if not rows:
-        raise HTTPException(status_code=404, detail="No telemetry found for this machine")
 
     return [
         TelemetryPoint(

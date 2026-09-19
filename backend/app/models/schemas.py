@@ -64,7 +64,7 @@ class SimulationStatusResponse(BaseModel):
     tick_count: int
     active_machines: List[int]
     started_at: Optional[str]
-    vehicle_degradations: Dict[str, float]
+    vehicle_degradations: Dict[int, float]
 
 
 class SimulationResetResponse(BaseModel):
