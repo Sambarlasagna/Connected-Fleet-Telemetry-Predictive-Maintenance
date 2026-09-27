@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+        from pydantic import BaseModel
 from typing import Optional, Dict, List, Any
 
 
@@ -65,6 +65,7 @@ class SimulationStatusResponse(BaseModel):
     active_machines: List[int]
     started_at: Optional[str]
     vehicle_degradations: Dict[int, float]
+    kafka_mode: bool = False
 
 
 class SimulationResetResponse(BaseModel):

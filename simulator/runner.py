@@ -25,6 +25,15 @@ from simulator.vehicle import VehicleState
 from simulator.scenarios import SCENARIOS, DEMO_SCRIPT
 from app.services.ml_service import predict_fast
 
+# Try to import Kafka producer (optional — falls back to direct DB if unavailable)
+try:
+    from streaming.producer import send_telemetry, flush as kafka_flush
+    _KAFKA_AVAILABLE = True
+except ImportError:
+    _KAFKA_AVAILABLE = False
+    def send_telemetry(event): return False
+    def kafka_flush(): pass
+
 
 # ── Singleton session ──────────────────────────────────────────────────────────
 
@@ -46,6 +55,7 @@ class SimulationRunner:
 
         # Active vehicle states
         self._vehicles: Dict[int, VehicleState] = {}
+        self.kafka_mode = False  # True when Kafka is active for this run
 
         # DB session factory (set by start())
         self._get_db = None
@@ -176,8 +186,27 @@ class SimulationRunner:
                         # Tick the vehicle
                         vehicle.tick()
 
-                        # Build and insert telemetry row
+                        # Build telemetry row
                         row = vehicle.telemetry_row()
+
+                        # Try Kafka first; fall back to direct DB
+                        kafka_sent = False
+                        if _KAFKA_AVAILABLE:
+                            event = {
+                                **row,
+                                "timestamp": str(row["timestamp"]),
+                                "scenario":   vehicle.scenario,
+                                "degradation": round(vehicle.degradation, 4),
+                            }
+                            kafka_sent = send_telemetry(event)
+
+                        if kafka_sent:
+                            # Kafka consumer handles DB writes — skip direct write
+                            self.kafka_mode = True
+                            continue
+
+                        # ── Direct-DB fallback (no Kafka) ──────────────────
+                        self.kafka_mode = False
                         db.execute(text("""
                             INSERT INTO telemetry (machine_id, timestamp, volt, rotate, pressure, vibration)
                             VALUES (:machine_id, :timestamp, :volt, :rotate, :pressure, :vibration)
@@ -228,6 +257,7 @@ class SimulationRunner:
                         print(f"[SimRunner] Error on machine {mid}: {e}")
 
                 db.commit()
+                kafka_flush()  # flush any buffered Kafka messages
                 try:
                     next(db_gen)
                 except StopIteration:
@@ -242,6 +272,23 @@ class SimulationRunner:
             self._stop_evt.wait(timeout=sleep_time)
 
         self.is_running = False
+
+    def get_status(self) -> dict:
+        with self._lock:
+            return {
+                "is_running":           self.is_running,
+                "is_demo":              self.is_demo,
+                "scenario":             self.scenario,
+                "speed":                self.speed,
+                "tick_count":           self.tick_count,
+                "active_machines":      list(self.active_machine_ids),
+                "started_at":           self.started_at.isoformat() if self.started_at else None,
+                "vehicle_degradations": {
+                    mid: round(v.degradation, 3)
+                    for mid, v in self._vehicles.items()
+                },
+                "kafka_mode":           self.kafka_mode,
+            }
 
 
 # ── Module-level singleton ─────────────────────────────────────────────────────

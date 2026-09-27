@@ -81,6 +81,20 @@ function SimulationPanel({ simStatus, onStart, onStop, onReset, busy }) {
             <span style={{ marginLeft: 12 }}>
               Speed: <strong>{simStatus.speed}x</strong>
             </span>
+            <span style={{
+              marginLeft: 12,
+              padding: '2px 8px',
+              borderRadius: 4,
+              fontSize: '0.7rem',
+              fontWeight: 700,
+              background: simStatus.kafka_mode
+                ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.06)',
+              color: simStatus.kafka_mode ? '#818cf8' : 'var(--text-muted)',
+              border: simStatus.kafka_mode
+                ? '1px solid rgba(99,102,241,0.3)' : '1px solid var(--border)',
+            }}>
+              {simStatus.kafka_mode ? '⚡ Kafka Pipeline' : '📦 Direct DB'}
+            </span>
           </div>
         )}
       </div>
