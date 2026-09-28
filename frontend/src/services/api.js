@@ -25,3 +25,8 @@ export const stopSimulation = () =>
 
 export const resetSimulation = () =>
   api.post('/api/simulation/reset').then(r => r.data);
+
+// ── MLflow ─────────────────────────────────────────────────────────────────────
+export const getMLflowModel = () => api.get('/api/mlflow/model').then(r => r.data);
+export const getMLflowRuns  = (limit = 10) => api.get(`/api/mlflow/runs?limit=${limit}`).then(r => r.data);
+export const getMLflowBest  = () => api.get('/api/mlflow/best').then(r => r.data);

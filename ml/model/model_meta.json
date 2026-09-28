@@ -1,4 +1,6 @@
 {
+  "run_id": "b3bfa355696640508e53966e15fb0bf4",
+  "model_uri": "models:/m-782ad993c59742c0a5bf9d1b1c8fb283",
   "feature_cols": [
     "volt",
     "rotate",
@@ -30,6 +32,8 @@
   ],
   "auc_roc": 0.9762,
   "f1_score": 0.865,
+  "precision": 0.8084,
+  "recall": 0.9301,
   "n_estimators": 100,
   "max_depth": 8
 }

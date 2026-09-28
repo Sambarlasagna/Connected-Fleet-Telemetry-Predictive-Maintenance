@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes import fleet, vehicles, predictions, simulation
+from app.routes import fleet, vehicles, predictions, simulation, mlflow_info
 
 app = FastAPI(
     title="FleetGuard API",
@@ -20,6 +20,7 @@ app.include_router(fleet.router,       prefix="/api", tags=["Fleet"])
 app.include_router(vehicles.router,    prefix="/api", tags=["Vehicles"])
 app.include_router(predictions.router, prefix="/api", tags=["Predictions"])
 app.include_router(simulation.router,  prefix="/api", tags=["Simulation"])
+app.include_router(mlflow_info.router, prefix="/api", tags=["MLflow"])
 
 
 @app.get("/health")
