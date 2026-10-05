@@ -200,6 +200,65 @@ export default function AnalyticsPage() {
             {' '}· Database: <code style={{ fontSize: '0.78rem' }}>mlruns/mlflow.db</code>
             {' '}· Experiment: <code style={{ fontSize: '0.78rem' }}>fleetguard-predictive-maintenance</code>
           </div>
+          {/* ── Observability Stack ── */}
+          <div style={{ marginTop: 28 }}>
+            <h2 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: 14 }}>Observability Stack</h2>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
+
+              {[
+                {
+                  title: 'Prometheus',
+                  url: 'http://localhost:9090',
+                  label: ':9090',
+                  desc: 'Metric scraping · 15s interval · 7d retention',
+                  color: '#f97316',
+                  icon: '📈',
+                },
+                {
+                  title: 'Grafana Dashboard',
+                  url: 'http://localhost:3000',
+                  label: ':3000  admin / fleetguard',
+                  desc: 'FleetGuard Operations dashboard · live 15s refresh',
+                  color: '#f59e0b',
+                  icon: '📊',
+                },
+                {
+                  title: 'Fleet Metrics JSON',
+                  url: 'http://localhost:8000/api/metrics/fleet/json',
+                  label: '/api/metrics/fleet/json',
+                  desc: 'Risk distribution · alerts · simulation state',
+                  color: '#6366f1',
+                  icon: '🔗',
+                },
+                {
+                  title: 'Raw Prometheus Text',
+                  url: 'http://localhost:8000/metrics',
+                  label: '/metrics',
+                  desc: 'HTTP request counts · latencies · GC stats',
+                  color: '#34d399',
+                  icon: '📋',
+                },
+              ].map(({ title, url, label, desc, color, icon }) => (
+                <a
+                  key={title}
+                  href={url}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ textDecoration: 'none' }}
+                >
+                  <div className="card" style={{ padding: 18, cursor: 'pointer', borderLeft: `3px solid ${color}`, transition: 'transform 0.15s ease, box-shadow 0.15s ease' }}
+                    onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = `0 6px 20px rgba(0,0,0,0.3)`; }}
+                    onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
+                  >
+                    <div style={{ fontSize: '1.4rem', marginBottom: 6 }}>{icon}</div>
+                    <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text)', marginBottom: 3 }}>{title}</div>
+                    <div style={{ fontFamily: 'monospace', fontSize: '0.72rem', color, marginBottom: 6 }}>{label}</div>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>{desc}</div>
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
         </>
       )}
     </div>

@@ -27,3 +27,9 @@ Thumbs.db
 
 # Docker
 *.log
+# Production secrets
+.env
+terraform.tfstate*
+.terraform/
+*.tfvars
+!.env.example

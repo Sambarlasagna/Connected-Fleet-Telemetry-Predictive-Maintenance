@@ -1,0 +1,26 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    project: 'fleetguard'
+
+scrape_configs:
+
+  # ── FastAPI standard HTTP metrics (/metrics) ──────────────────────────────────
+  - job_name: 'fleetguard-api'
+    static_configs:
+      - targets: ['host.docker.internal:8000']
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  # ── FleetGuard custom business metrics (/api/metrics/fleet) ──────────────────
+  - job_name: 'fleetguard-fleet'
+    static_configs:
+      - targets: ['host.docker.internal:8000']
+    metrics_path: /api/metrics/fleet
+    scrape_interval: 15s
+
+  # ── Prometheus self-monitoring ────────────────────────────────────────────────
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']

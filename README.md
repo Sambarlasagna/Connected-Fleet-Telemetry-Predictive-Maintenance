@@ -1,180 +1,327 @@
-# 🚗 Fleet Predictive Analytics — Predictive Maintenance with PySpark
+# FleetGuard — Real-Time Predictive Maintenance Platform
 
-![Python](https://img.shields.io/badge/Python-3.12-blue?logo=python)
-![PySpark](https://img.shields.io/badge/Apache_Spark-3.5-orange?logo=apachespark)
-![Scikit](https://img.shields.io/badge/Spark_MLlib-RandomForest-brightgreen)
-![Status](https://img.shields.io/badge/Status-Complete-success)
+<div align="center">
 
-> **An end-to-end distributed ML pipeline that predicts engine component failures 24 hours in advance using real vehicle telemetry data — achieving AUC-ROC of 0.97 and an estimated 87% reduction in unplanned fleet maintenance costs.**
+![FleetGuard](https://img.shields.io/badge/FleetGuard-Predictive%20Maintenance-6366f1?style=for-the-badge)
+![Python](https://img.shields.io/badge/Python-3.12-blue?style=flat-square&logo=python)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.141-009688?style=flat-square&logo=fastapi)
+![React](https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react)
+![Kafka](https://img.shields.io/badge/Apache%20Kafka-Streaming-231F20?style=flat-square&logo=apachekafka)
+![PySpark](https://img.shields.io/badge/PySpark-Batch-E25A1C?style=flat-square&logo=apachespark)
+![MLflow](https://img.shields.io/badge/MLflow-Tracking-0194E2?style=flat-square&logo=mlflow)
+![Prometheus](https://img.shields.io/badge/Prometheus-Monitoring-E6522C?style=flat-square&logo=prometheus)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=flat-square&logo=docker)
+![AWS](https://img.shields.io/badge/AWS-EC2%20%2B%20S3-FF9900?style=flat-square&logo=amazonaws)
+
+**A cloud-native, end-to-end predictive maintenance platform for connected vehicle fleets.**
+
+*Kafka streaming → PySpark feature engineering → RandomForest ML → MLflow tracking → Prometheus observability → React dashboard*
+
+</div>
 
 ---
 
-## 📌 Problem Statement
+## What It Does
 
-Connected vehicle fleets generate continuous streams of sensor telemetry (voltage, rotation, pressure, vibration) from hundreds of machines. Reactive maintenance — fixing components *after* failure — is expensive and causes unplanned downtime.
+FleetGuard monitors a fleet of vehicles in real time, ingesting sensor telemetry through Kafka, engineering features with PySpark, predicting mechanical failure risk with a trained RandomForest model, and surfacing everything through a live React dashboard. The system detects risk before failures happen and explains *why* using SHAP feature attribution.
 
-This project builds a **predictive maintenance pipeline** that:
-- Processes 876,000 rows of hourly sensor telemetry using **Apache Spark (PySpark)**
-- Engineers time-series rolling-window features to capture sensor drift
-- Trains a **Spark MLlib Random Forest** to predict failure within the next 24 hours
-- Quantifies real-world business impact in terms of fleet cost savings
+A recruiter or engineer can open the dashboard and:
+- See all 20 vehicles with live health status (🟢 Healthy → 🟡 At Risk → 🔴 Critical)
+- Click any vehicle to see live telemetry charts and failure probability
+- Understand the prediction via SHAP feature contribution bars
+- Start a simulation and watch vehicles degrade in real time
+- View ML experiment runs, model metrics, and the model registry
+- Access Grafana dashboards tracking fleet health and API performance
 
 ---
 
-## 🏗️ Pipeline Architecture
+## Architecture
 
 ```
-Raw CSVs (5 files)
-│
-│  PdM_telemetry.csv   ← 876,100 rows of hourly sensor readings
-│  PdM_failures.csv    ← 761 recorded failure events
-│  PdM_errors.csv      ← 3,919 error log entries
-│  PdM_machines.csv    ← 100 machines (model + age metadata)
-│  PdM_maint.csv       ← 3,286 maintenance records
-│
-▼
-[ 01_eda.ipynb ] — Exploratory Data Analysis
-│   Sensor distributions, failure trends, fleet metadata analysis
-│
-▼
-[ 02_spark_pipeline.ipynb ] — Distributed Feature Engineering (PySpark)
-│   ├── Timestamp casting & null audit
-│   ├── Rolling Window Features (3h + 24h mean & std per sensor) → +16 features
-│   ├── Error code aggregation (one-hot counts per machine/hour) → +5 features
-│   ├── Fleet metadata join (model type, vehicle age)            → +2 features
-│   └── Binary label: failure within next 24h (broadcast join)
-│
-▼
-[ 03_predictive_model.ipynb ] — ML Training & Evaluation (Spark MLlib)
-    ├── Class balancing (4:1 undersample negatives)
-    ├── VectorAssembler + StandardScaler pipeline
-    ├── Chronological train/test split (no data leakage)
-    ├── Random Forest (100 trees, depth 8)
-    └── Business cost-impact analysis
-```
-
----
-
-## 📊 Results
-
-### Model Performance
-
-| Metric     | Score  |
-|------------|--------|
-| AUC-ROC    | **0.9714** |
-| AUC-PR     | **0.8413** |
-| F1 Score   | **0.9370** |
-| Accuracy   | **0.9356** |
-| Recall     | **0.9356** |
-| Precision  | **0.9400** |
-
-### Confusion Matrix (Test Set)
-
-|                    | Predicted Normal | Predicted Failure |
-|--------------------|-----------------|-------------------|
-| **Actual Normal**  | 13,751 ✅        | 801 ⚠️             |
-| **Actual Failure** | 358 ❌           | 3,080 ✅           |
-
-> The model catches **89.6% of all real failures** with only a **5.5% false alarm rate** — a strong operational trade-off given that a missed failure costs ~42× more than a false alarm.
-
-### Business Cost Impact
-
-| Scenario                        | Estimated Cost   |
-|---------------------------------|-----------------|
-| Reactive maintenance (no model) | $29,223,000     |
-| With predictive model           | $3,659,000      |
-| **Estimated savings**           | **$25,564,000 (87%)** |
-
-### Top Feature Importances
-
-| Rank | Feature             | Importance |
-|------|---------------------|------------|
-| 1    | `rotate_mean24h`    | 0.2068     |
-| 2    | `volt_mean24h`      | 0.1584     |
-| 3    | `vibration_mean24h` | 0.1243     |
-| 4    | `rotate_mean3h`     | 0.1122     |
-| 5    | `pressure_mean24h`  | 0.0758     |
-
-> **Key insight:** 24-hour rolling *means* (not instantaneous readings) dominate feature importance — confirming that gradual sensor drift over time is more predictive of failure than any individual spike.
-
----
-
-## 🛠️ Tech Stack
-
-| Layer               | Technology                          |
-|---------------------|-------------------------------------|
-| Distributed compute | Apache Spark 3.5 (PySpark)          |
-| ML framework        | Spark MLlib (Pipeline API)          |
-| Feature engineering | Spark Window Functions              |
-| EDA & visualization | Pandas, Matplotlib, Seaborn         |
-| Data format         | CSV (raw) → Parquet (processed)     |
-| Environment         | Python 3.12, Jupyter Notebook       |
-
----
-
-## 📁 Project Structure
-
-```
-Connected-Fleet-Telemetry-Predictive-Maintenance/
-│
-├── notebooks/
-│   ├── 01_eda.ipynb                  # Exploratory Data Analysis
-│   ├── 02_spark_pipeline.ipynb       # PySpark feature engineering
-│   └── 03_predictive_model.ipynb     # Spark MLlib model training & evaluation
-│
-├── data/
-│   ├── raw/                          # Source CSVs (not tracked in git)
-│   └── processed/                    # Engineered Parquet dataset
-│
-├── requirements.txt
-├── .gitignore
-└── README.md
+┌─────────────────────────────────────────────────────────────────┐
+│                     React Dashboard (Vite)                       │
+│          Fleet Overview · Vehicle Detail · ML Analytics          │
+└───────────────────────────┬─────────────────────────────────────┘
+                            │ REST API
+┌───────────────────────────▼─────────────────────────────────────┐
+│                    FastAPI Backend                               │
+│   /fleet  /vehicles  /predictions  /simulation  /mlflow  /metrics│
+└──────┬──────────────────┬──────────────────────┬────────────────┘
+       │                  │                       │
+┌──────▼──────┐   ┌───────▼──────┐      ┌────────▼────────┐
+│  PostgreSQL  │   │  ML Model    │      │  Prometheus     │
+│  telemetry   │   │  RandomForest│      │  + Grafana      │
+│  predictions │   │  + SHAP      │      │  Observability  │
+│  alerts      │   └──────────────┘      └─────────────────┘
+└─────────────┘
+       ▲
+       │ writes
+┌──────┴────────────────────────────────────────────────────────┐
+│               Live Telemetry Pipeline                          │
+│                                                               │
+│  Vehicle Simulator ──► Kafka ──► Python Consumer             │
+│       (20 vehicles)    (vehicle-telemetry)  │                 │
+│       Scenarios:                            ▼                 │
+│       - bearing_wear              Feature Engineering         │
+│       - overheating                        │                  │
+│       - electrical_fault                   ▼                  │
+│       - sensor_drift              RF Prediction + SHAP        │
+│                                           │                   │
+│                                           ▼                   │
+│                              PostgreSQL (telemetry + alerts)  │
+└───────────────────────────────────────────────────────────────┘
+       │
+       │ (batch)
+┌──────▼────────────────────────────────────────────────────────┐
+│               PySpark Batch Pipeline                           │
+│   CSV Export → Preprocessing → Feature Engineering            │
+│       → Model Training → MLflow → Model Registry             │
+│                                                               │
+│   Automated via Airflow DAG (weekly retraining)               │
+└───────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 🚀 How to Run
+## Tech Stack
 
-### 1. Install dependencies
+| Layer | Technology | Purpose |
+|---|---|---|
+| **Frontend** | React 18 + Vite | Fleet dashboard, telemetry charts, SHAP viz |
+| **API** | FastAPI 0.141 | REST endpoints, simulation control |
+| **Database** | PostgreSQL 16 | Telemetry, predictions, alerts, machines |
+| **Streaming** | Apache Kafka + kafka-python-ng | Real-time telemetry pipeline |
+| **Big Data** | PySpark 3.5 | Batch feature engineering on historical data |
+| **ML** | scikit-learn RandomForest | Failure probability prediction |
+| **Explainability** | SHAP | Feature contribution explanations |
+| **MLOps** | MLflow 3.x | Experiment tracking + model registry |
+| **Orchestration** | Apache Airflow 2.9 | Automated weekly model retraining DAG |
+| **Monitoring** | Prometheus + Grafana | Metrics, dashboards, alerting |
+| **Containers** | Docker + Docker Compose | Full local + production stack |
+| **Cloud** | AWS EC2 + S3 + IAM | Public deployment + telemetry archiving |
+| **CI/CD** | GitHub Actions | Test → Build → Push to GHCR → Deploy to EC2 |
+| **IaC** | Terraform | Reproducible AWS infrastructure |
+
+---
+
+## ML Model Performance
+
+The RandomForest classifier is trained on 27 engineered features derived from 4 raw sensor signals (voltage, rotation, pressure, vibration) with 3h and 24h rolling window statistics:
+
+| Metric | Score |
+|---|---|
+| **AUC-ROC** | **0.9762** |
+| **F1 Score** | **0.8650** |
+| **Precision** | **0.8084** |
+| **Recall** | **0.9301** |
+
+Training runs, hyperparameters, and metrics are tracked in MLflow. The hyperparameter sweep trains 5 configurations and automatically promotes the highest-AUC model to Production.
+
+---
+
+## Project Structure
+
+```
+.
+├── frontend/                  # React dashboard (Vite + CSS)
+│   └── src/
+│       ├── pages/             # LandingPage, FleetDashboard, MachineDetail, AnalyticsPage
+│       └── services/api.js    # API client
+│
+├── backend/                   # FastAPI application
+│   └── app/
+│       ├── routes/            # fleet, vehicles, predictions, simulation, mlflow, monitoring
+│       ├── services/metrics.py# Prometheus custom metrics registry
+│       └── main.py            # App + Prometheus middleware
+│
+├── simulator/                 # Vehicle telemetry simulator
+│   ├── vehicle.py             # Vehicle model with degradation
+│   ├── scenarios.py           # Fault scenarios (bearing_wear, overheating, ...)
+│   └── runner.py              # Thread-based simulation controller
+│
+├── streaming/
+│   ├── producer.py            # Kafka producer (simulator → vehicle-telemetry)
+│   └── consumer.py            # Kafka consumer → feature eng → prediction → DB
+│
+├── spark/                     # PySpark batch pipeline
+│   ├── preprocessing/         # Data cleaning + quality scoring
+│   ├── feature_engineering/   # Rolling window features (3h, 24h)
+│   └── batch_inference/       # Batch ML predictions
+│
+├── ml/
+│   ├── training/
+│   │   ├── train_with_mlflow.py     # Single training run
+│   │   └── hyperparameter_sweep.py  # 5-config sweep + auto-promote
+│   └── export_model.py        # Export model to disk
+│
+├── airflow/
+│   ├── dags/fleetguard_retrain_dag.py  # 8-step retraining DAG
+│   └── run_pipeline.py               # Standalone runner (no Airflow needed)
+│
+├── monitoring/
+│   ├── prometheus/prometheus.yml      # Scrape config
+│   └── grafana/
+│       ├── dashboards/fleetguard.json # Pre-built dashboard
+│       └── provisioning/             # Auto-provisioned datasource + dashboards
+│
+├── deploy/
+│   ├── terraform/main.tf      # AWS VPC + EC2 + S3 + IAM
+│   ├── nginx/nginx.prod.conf  # Reverse proxy config
+│   └── scripts/deploy.sh      # Manual deploy script
+│
+├── .github/workflows/deploy.yml  # CI/CD pipeline
+├── docker-compose.yml             # Local development stack
+├── docker-compose.prod.yml        # Production stack
+├── docker-compose.airflow.yml     # Airflow add-on stack
+└── DEPLOY.md                      # Full deployment guide
+```
+
+---
+
+## Quick Start
+
+### Prerequisites
+- Docker Desktop
+- Python 3.12
+- Node.js 20
+
+### 1. Start the infrastructure
+
 ```bash
+docker compose up -d postgres zookeeper kafka
+```
+
+### 2. Start the backend
+
+```bash
+cd backend
 pip install -r requirements.txt
+uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
-### 2. Download the dataset
-Get the [Microsoft Azure Predictive Maintenance Dataset](https://www.kaggle.com/datasets/arnabbiswas1/microsoft-azure-predictive-maintenance) from Kaggle and place all 5 CSV files in `data/raw/`.
+### 3. Start the frontend
 
-### 3. Run the notebooks in order
 ```bash
-jupyter notebook
+cd frontend
+npm install
+npm run dev
+# → http://localhost:5173
 ```
-Open and run:
-1. `01_eda.ipynb`
-2. `02_spark_pipeline.ipynb`
-3. `03_predictive_model.ipynb`
+
+### 4. Seed the database
+
+```bash
+python database/docker_seed.py
+```
+
+### 5. (Optional) Start live simulation
+
+From the dashboard → click **Start Simulation** — or via API:
+```bash
+curl -X POST http://localhost:8000/api/simulation/start \
+  -H "Content-Type: application/json" \
+  -d '{"scenario": "bearing_wear", "speed": 2.0}'
+```
 
 ---
 
-## 🔍 Key Engineering Decisions
+## MLflow
 
-**Why chronological train/test split?**
-Random splits cause data leakage in time-series data — the model would train on future data to predict the past. A chronological 80/20 split ensures evaluation reflects real deployment conditions.
+Train and track experiments:
 
-**Why broadcast join for labels?**
-The failures table has only 761 rows. Broadcasting it to all Spark executors avoids a full shuffle-join against 876k telemetry rows, making label creation ~10× more memory efficient.
+```bash
+# Single training run
+python ml/training/train_with_mlflow.py
 
-**Why undersample instead of oversample?**
-Oversampling (SMOTE) on Spark requires UDFs which are slow. 4:1 undersampling of the majority class achieves class balance while keeping the dataset fully within JVM operations.
+# Hyperparameter sweep (5 configs, auto-promotes best)
+python ml/training/hyperparameter_sweep.py
 
----
-
-## 📈 Production Next Steps
-
-- **Real-time streaming:** Deploy via Kafka + Spark Structured Streaming to evaluate each machine's sensor batch as it arrives and trigger maintenance alerts
-- **Model serving:** Export via MLflow and serve predictions via a REST API
-- **Drift monitoring:** Track sensor distribution shifts over time to detect model degradation
+# Start MLflow UI
+mlflow ui --backend-store-uri sqlite:///mlruns/mlflow.db --port 5000
+# → http://localhost:5000
+```
 
 ---
 
-## 👤 Author
+## Retraining Pipeline (Airflow)
 
-**Jayashuriya J** — [GitHub](https://github.com/Sambarlasagna)
+```bash
+# Run the full pipeline locally (no Airflow required)
+python airflow/run_pipeline.py --skip-spark --min-rows 100
+
+# Dry-run (just check data freshness)
+python airflow/run_pipeline.py --dry-run
+
+# With Docker Airflow (full DAG)
+docker compose -f docker-compose.yml -f docker-compose.airflow.yml up -d
+# → http://localhost:8080  (admin / fleetguard)
+```
+
+Pipeline steps:
+1. **Data freshness** — skip if < 500 new rows
+2. **Export** — PostgreSQL → CSV
+3. **PySpark preprocessing** — clean + DQ score
+4. **PySpark feature engineering** — 3h + 24h rolling windows
+5. **Baseline training** — log to MLflow
+6. **Hyperparameter sweep** — 4 more configs
+7. **Promote best** — highest AUC → Production stage
+8. **Summary** — JSON report to `data/reports/`
+
+---
+
+## Monitoring
+
+```bash
+# Prometheus metrics
+open http://localhost:8000/metrics          # raw text
+open http://localhost:8000/api/metrics/fleet/json  # JSON snapshot
+
+# Start monitoring stack
+docker compose up -d prometheus grafana
+
+# Grafana dashboard
+open http://localhost:3000  # admin / fleetguard
+```
+
+Tracked metrics:
+- `fleetguard_machines_by_risk{risk_level}` — distribution
+- `fleetguard_avg_failure_probability` — fleet average
+- `fleetguard_critical_machines` — count
+- `fleetguard_active_alerts` — unresolved
+- `fleetguard_simulation_ticks_total` — pipeline throughput
+- `http_request_duration_seconds` — API latency histogram
+
+---
+
+## Deploy to AWS
+
+```bash
+cd deploy/terraform
+terraform init
+terraform apply -var="key_pair_name=your-key"
+# → http://<elastic-ip> (live in ~3 minutes)
+```
+
+Full guide: [`DEPLOY.md`](DEPLOY.md)
+
+---
+
+## Demo Scenario
+
+The full journey a user experiences:
+
+1. Open the dashboard → see 20 vehicles with health status
+2. Click **Start Simulation** → choose `bearing_wear` scenario
+3. Watch Vehicle 3 → voltage drops, vibration rises
+4. Risk badge flips: 🟢 → 🟡 → 🔴
+5. Click the vehicle → see live telemetry charts
+6. View **failure probability** updating every second
+7. Click **Why is this risky?** → SHAP bars show `vibration_std3h` and `volt_mean3h` as top drivers
+8. Open **ML Analytics** → see AUC 0.9762, all MLflow runs, model version in Production
+9. Check Grafana → see API latency, machine distribution, Kafka throughput in real time
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE)
