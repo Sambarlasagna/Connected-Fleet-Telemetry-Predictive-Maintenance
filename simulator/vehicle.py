@@ -125,11 +125,33 @@ class VehicleState:
             **{k: round(v, 4) for k, v in self.sensors.items()},
         }
 
-    def set_scenario(self, scenario: str, reset_degradation: bool = False):
-        """Switch to a new scenario mid-simulation."""
+    def set_scenario(self, scenario: str, reset_degradation: bool = True):
+        """Switch to a new scenario mid-simulation.
+
+        Pre-warms ALL rolling stat buffers with projected fault readings so the
+        ML model immediately sees anomalous 24h/3h means — no warm-up lag.
+        The model's top features (rotate_mean24h, volt_mean24h, vibration_mean24h)
+        require the LONG buffer to be fully pre-warmed.
+        """
+        from simulator.scenarios import SCENARIOS as _SC
         self.scenario = scenario
         if reset_degradation:
             self.degradation = 0.0
+
+        fn = _SC.get(scenario)
+        if fn is not None and scenario != "normal":
+            # Fully pre-warm the short (3h) buffer
+            for _ in range(SHORT_WINDOW):
+                projected = fn(self.sensors, 0.7)
+                for k in projected:
+                    if k in self._short_buf:
+                        self._short_buf[k].append(projected[k])
+            # Fully pre-warm the long (24h) buffer — critical for model accuracy
+            for _ in range(LONG_WINDOW):
+                projected = fn(self.sensors, 0.6)
+                for k in projected:
+                    if k in self._long_buf:
+                        self._long_buf[k].append(projected[k])
 
 
 # ── Helper statistics ──────────────────────────────────────────────────────────

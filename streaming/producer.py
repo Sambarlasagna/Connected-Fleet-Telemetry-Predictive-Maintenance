@@ -20,11 +20,14 @@ TOPIC = os.getenv("KAFKA_TOPIC", "vehicle-telemetry")
 BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9093")
 
 _producer = None
+_kafka_unavailable = False  # Set to True after first failed connection attempt
 
 
 def get_producer():
     """Get or create the Kafka producer singleton. Returns None if Kafka is unavailable."""
-    global _producer
+    global _producer, _kafka_unavailable
+    if _kafka_unavailable:
+        return None
     if _producer is not None:
         return _producer
 
@@ -42,7 +45,8 @@ def get_producer():
         logger.info(f"[Kafka] Producer connected to {BOOTSTRAP_SERVERS}")
         return _producer
     except Exception as e:
-        logger.warning(f"[Kafka] Producer unavailable — running in direct-DB mode: {e}")
+        _kafka_unavailable = True  # Stop retrying on every tick
+        logger.warning(f"[Kafka] Producer unavailable - running in direct-DB mode: {e}")
         return None
 
 

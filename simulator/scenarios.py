@@ -43,13 +43,13 @@ def scenario_normal(sensors: Dict[str, float], degradation: float) -> Dict[str, 
 
 def scenario_overheat(sensors: Dict[str, float], degradation: float) -> Dict[str, float]:
     """
-    Pressure and vibration rise sharply, voltage drops — overheating signature.
-    At degradation=0.5 the machine is clearly at risk; at 0.8 it is critical.
+    Overheating — pressure and vibration rise, volt drops sharply, rotation slows.
+    Tuned so rotate_mean24h and volt_mean24h (top model features) are strongly affected.
     """
     d = degradation
     return {
-        "volt":      max(0.0, _gauss(BASELINE["volt"]      - 50  * d, NOISE["volt"]      * (1 + d))),
-        "rotate":    max(0.0, _gauss(BASELINE["rotate"]    - 80  * d, NOISE["rotate"]    * (1 + d))),
+        "volt":      max(0.0, _gauss(BASELINE["volt"]      - 80  * d, NOISE["volt"]      * (1 + d))),
+        "rotate":    max(0.0, _gauss(BASELINE["rotate"]    - 150 * d, NOISE["rotate"]    * (1 + 2 * d))),
         "pressure":  max(0.0, _gauss(BASELINE["pressure"]  + 100 * d, NOISE["pressure"]  * (1 + 2 * d))),
         "vibration": max(0.0, _gauss(BASELINE["vibration"] + 100 * d, NOISE["vibration"] * (1 + 3 * d))),
     }
@@ -57,15 +57,14 @@ def scenario_overheat(sensors: Dict[str, float], degradation: float) -> Dict[str
 
 def scenario_voltage_spike(sensors: Dict[str, float], degradation: float) -> Dict[str, float]:
     """
-    Severe erratic voltage — spikes and drops simulating power supply failure.
-    Rotation becomes unstable, vibration increases due to electrical irregularity.
+    Erratic voltage — spikes and drops simulating power supply failure.
+    Volt swings wildly; rotation drops as power becomes unstable.
     """
     d = degradation
-    # Oscillating spike: voltage swings wildly between very low and very high
-    spike = math.sin(d * math.pi * 8) * 90 * d
+    spike = math.sin(d * math.pi * 8) * 60 * d
     return {
-        "volt":      max(0.0, _gauss(BASELINE["volt"] + spike, NOISE["volt"] * (1 + 5 * d))),
-        "rotate":    max(0.0, _gauss(BASELINE["rotate"] - 100 * d, NOISE["rotate"] * (1 + 3 * d))),
+        "volt":      max(0.0, _gauss(BASELINE["volt"] + spike - 60 * d, NOISE["volt"] * (1 + 5 * d))),
+        "rotate":    max(0.0, _gauss(BASELINE["rotate"] - 130 * d, NOISE["rotate"] * (1 + 3 * d))),
         "pressure":  max(0.0, _gauss(BASELINE["pressure"] - 20 * d, NOISE["pressure"] * (1 + d))),
         "vibration": max(0.0, _gauss(BASELINE["vibration"] + 70 * d, NOISE["vibration"] * (1 + 2 * d))),
     }
@@ -73,15 +72,15 @@ def scenario_voltage_spike(sensors: Dict[str, float], degradation: float) -> Dic
 
 def scenario_bearing_wear(sensors: Dict[str, float], degradation: float) -> Dict[str, float]:
     """
-    Classic bearing failure — vibration spikes hard, rotation deteriorates.
-    Most impactful scenario for the model (vibration is top SHAP feature).
+    Bearing failure — vibration spikes hard, rotation deteriorates, volt drops.
+    Tuned to strongly affect rotate_mean24h (top model feature) and vibration_mean24h.
     """
     d = degradation
     return {
-        "volt":      max(0.0, _gauss(BASELINE["volt"],             NOISE["volt"])),
-        "rotate":    max(0.0, _gauss(BASELINE["rotate"] - 100 * d, NOISE["rotate"]    * (1 + 3 * d))),
-        "pressure":  max(0.0, _gauss(BASELINE["pressure"] + 20 * d, NOISE["pressure"] * (1 + d))),
-        "vibration": max(0.0, _gauss(BASELINE["vibration"] + 140 * d, NOISE["vibration"] * (1 + 4 * d))),
+        "volt":      max(0.0, _gauss(BASELINE["volt"]      - 40  * d, NOISE["volt"])),
+        "rotate":    max(0.0, _gauss(BASELINE["rotate"]    - 160 * d, NOISE["rotate"]    * (1 + 3 * d))),
+        "pressure":  max(0.0, _gauss(BASELINE["pressure"]  + 20  * d, NOISE["pressure"] * (1 + d))),
+        "vibration": max(0.0, _gauss(BASELINE["vibration"] + 160 * d, NOISE["vibration"] * (1 + 4 * d))),
     }
 
 
