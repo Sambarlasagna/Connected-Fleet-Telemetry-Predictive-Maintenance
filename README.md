@@ -181,26 +181,57 @@ Training runs, hyperparameters, and metrics are tracked in MLflow. The hyperpara
 ## Quick Start
 
 ### Prerequisites
-- Docker Desktop
+- Docker Desktop (running)
 - Python 3.12
 - Node.js 20
 
-### 1. Start the infrastructure
+### ⚡ One-command start (Windows)
 
+```powershell
+.\start.ps1
+```
+
+That's it. It starts Docker services, backend, and frontend automatically — each in their own terminal window — and prints the URLs when ready.
+
+```powershell
+.\start.ps1          # start everything
+.\start.ps1 -Reset   # wipe DB back to seed data, then start
+.\start.ps1 -Stop    # shut down Docker services
+```
+
+> **First time?** Allow local scripts once:
+> ```powershell
+> Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+> ```
+
+**URLs after startup:**
+
+| Service | URL |
+|---|---|
+| Dashboard | http://localhost:5173 |
+| API docs | http://localhost:8000/docs |
+| Health check | http://localhost:8000/health |
+
+---
+
+### Manual startup (alternative)
+
+<details>
+<summary>Expand manual steps</summary>
+
+**1. Start infrastructure**
 ```bash
 docker compose up -d postgres zookeeper kafka
 ```
 
-### 2. Start the backend
-
+**2. Start backend**
 ```bash
 cd backend
 pip install -r requirements.txt
-uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload --reload-dir . --reload-dir ..\simulator --reload-dir ..\streaming
 ```
 
-### 3. Start the frontend
-
+**3. Start frontend**
 ```bash
 cd frontend
 npm install
@@ -208,13 +239,7 @@ npm run dev
 # → http://localhost:5173
 ```
 
-### 4. Seed the database
-
-```bash
-python database/docker_seed.py
-```
-
-### 5. (Optional) Start live simulation
+**4. (Optional) Start live simulation**
 
 From the dashboard → click **Start Simulation** — or via API:
 ```bash
@@ -222,6 +247,8 @@ curl -X POST http://localhost:8000/api/simulation/start \
   -H "Content-Type: application/json" \
   -d '{"scenario": "bearing_wear", "speed": 2.0}'
 ```
+
+</details>
 
 ---
 
